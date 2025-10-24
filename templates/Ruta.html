@@ -1,0 +1,278 @@
+{% import 'macros.jinja2' as macros %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recorrido del Caballo</title>
+    <!-- Hoja de estilos principal -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Título de la página de animación del recorrido -->
+    <h1>Ruta del Caballo</h1>
+    <!-- Botones de control de la animación -->
+    <button id="btnIniciar" onclick="iniciar()">Iniciar Animación</button>
+    <button id="btnVerFinal" onclick="mostrarTableroFinal()" style="display: none;">Ver Tablero Final</button>
+    <a href="{{ url_for('reiniciar') }}"><button id="btnReiniciar" style="display: none;">Reiniciar</button></a>
+    <a href="{{ url_for('inicio') }}"><button id="btnInicio">Inicio</button></a>
+    
+    <div id="contenedor">
+        <!-- Tablero generado dinámicamente por JS -->
+        <div id="tablero" class="matriz"></div>
+        <!-- Tiempo de resolución mostrado al final -->
+        <p id="tiempo" style="display: none;">Tiempo de resolución: {{ '%.4f'|format(Tiempo) }} s</p>
+        <!-- Contador de pasos -->
+        <p id="contador"></p>  
+        <!-- Contador de retrocesos -->
+        <p id="contador-retrocesos">Retrocesos: 0</p>
+    </div>
+
+    <script>
+    /*
+     * Datos pasados desde Flask:
+     * - tamaño: número entero (N) con el tamaño del tablero N x N
+     * - pasos: arreglo JSON que representa la "Ruta" devuelta por el backend
+     *
+     * Formato esperado de cada entrada en 'pasos':
+     *   [fila, columna, tipo]
+     *   - fila: índice de fila (0-n)
+     *   - columna: índice de columna (0-n)
+     *   - tipo: 'A' para avance, 'R' para retroceso
+     *
+     * Notas:
+     *  - VELOCIDAD controla el intervalo entre pasos en ms. Si es 0, la animación es casi instantánea.
+     */
+    var tamaño = {{ Tamaño }};
+    var pasos = {{ Ruta|tojson }};
+    var VELOCIDAD = 300;
+
+    var tablero = document.getElementById('tablero');
+    var contador = document.getElementById('contador');
+    var tiempoElemento = document.getElementById('tiempo');
+    let retrocesos=0;
+    
+    var matriz = [];
+
+    /* 
+     * crearTablero()
+     *
+     * Entradas:
+     *   - ninguna (usa la variable global 'tamaño')
+     * Salidas:
+     *   - construye en el DOM la cuadrícula del tablero y actualiza la variable global 'matriz'
+     * Restricciones:
+     *   - modifica el DOM en el elemento con id="tablero"
+     *   - asume 'tamaño' es un entero >= 1
+     */
+    function crearTablero() {
+        tablero.innerHTML = '';
+        matriz = [];
+        
+        var Filas = 0;
+        while (Filas < tamaño) {
+            matriz.push([]);
+            var filaDiv = document.createElement('div');
+            filaDiv.className = 'fila';
+
+            var Columnas = 0;
+            while (Columnas < tamaño) {
+                var celda = document.createElement('div');
+                celda.className = 'celda';
+
+                filaDiv.appendChild(celda);
+                matriz[Filas].push(celda);
+
+                Columnas = Columnas + 1;
+            }
+
+            tablero.appendChild(filaDiv);
+            Filas = Filas + 1;
+        }
+    }
+
+    /*
+     * aplicarPaso(paso, anterior)
+     *
+     * Entradas:
+     *   - paso: arreglo [filaDestino, colDestino, tipo] donde tipo es 'A' o 'R'
+     *   - anterior: objeto {fila: x, columna: y} o null si no hay anterior
+     *
+     * Salidas:
+     *   - actualiza las clases y el contenido textual de celdas en 'matriz' para
+     *     reflejar un avance o un retroceso.
+     *
+     * Restricciones:
+     *   - asume que 'paso' y 'anterior' están dentro de los límites 0..tamaño-1
+     *   - modifica directamente los elementos DOM en 'matriz'
+     *   - usa la variable global 'numeroPaso' para numerar visitas
+     */
+    function aplicarPaso(paso, anterior) {
+        var filaDestino = paso[0];
+        var colDestino = paso[1];
+        var tipoPaso = paso[2];
+
+        if (anterior !== null) {
+            var filaAnterior = anterior.fila;
+            var colAnterior = anterior.columna;
+            var celdaAnterior = matriz[filaAnterior][colAnterior];
+
+            if (tipoPaso === 'A') {
+                celdaAnterior.className = 'celda visitada';
+                celdaAnterior.textContent = numeroPaso;
+                numeroPaso = numeroPaso + 1;
+            } else {
+                numeroPaso = Math.max(0, numeroPaso - 1);
+                celdaAnterior.className = 'celda retroceso';
+                celdaAnterior.textContent = '';
+                retrocesos++;
+                document.getElementById('contador-retrocesos').textContent = `Retrocesos: ${retrocesos}`;
+            }
+        }
+
+        var celdaDestino = matriz[filaDestino][colDestino];
+        celdaDestino.className = 'celda caballo';
+        celdaDestino.textContent = '';
+    }
+
+    /*
+     * mostrarTableroFinal()
+     *
+     * Entradas:
+     *   - ninguna explícita (usa 'pasos' y 'PasosTotal' globales)
+     * Salidas:
+     *   - reconstruye el tablero mostrando el tablero final contenido en pasos[PasosTotal-1]
+     *
+     * Restricciones:
+     *   - detiene la animación si está corriendo.
+     *   - muestra el elemento con id='tiempo'.
+     */
+    function mostrarTableroFinal() {
+        if (PasosTotal === 0) {
+            return;
+        }
+
+        if (intervalo !== null) {
+            clearInterval(intervalo);
+        }
+
+        document.getElementById('btnVerFinal').style.display = 'none';
+        document.getElementById('btnReiniciar').style.display = 'inline-block';
+        tiempoElemento.style.display = 'block';
+
+        crearTablero();
+
+        var tableroFinal = pasos[PasosTotal - 1];
+        
+        var fila = 0;
+        while (fila < tamaño) {
+            var columna = 0;
+            while (columna < tamaño) {
+                var valorCelda = tableroFinal[fila][columna];
+                var celda = matriz[fila][columna];
+                
+                if (valorCelda === 'C') {
+                    celda.className = 'celda caballo';
+                } else if (valorCelda !== -1) {
+                    celda.className = 'celda visitada';
+                    celda.textContent = valorCelda;
+                } else {
+                    celda.className = 'celda';
+                    celda.textContent = '';
+                }
+                
+                columna = columna + 1;
+            }
+            fila = fila + 1;
+        }
+
+        var totalPasos = PasosTotal;
+        var totalRetrocesos = pasos.filter(p => p[2] === 'R').length;
+
+        document.getElementById('contador').innerHTML = `
+            Pasos Totales: ${totalPasos}<br><br>
+            Retrocesos: ${totalRetrocesos}
+        `;
+        document.getElementById('contador-retrocesos').style.display = 'none';
+    }
+
+    crearTablero();
+
+    var indice = 0;
+    var posAnterior = null;
+    var intervalo = null;
+    var numeroPaso = 0;
+    var PasosTotal = pasos.length;
+
+    /*
+     * mostrarSiguientePaso()
+     *
+     * Entradas:
+     *   - ninguna (usa 'pasos', 'indice', 'posAnterior')
+     * Salidas:
+     *   - aplica el siguiente paso de la lista y actualiza el contador visual
+     *
+     * Restricciones:
+     *   - si 'indice' alcanza 'PasosTotal', detiene la animación y muestra el tiempo y botones
+     */
+    function mostrarSiguientePaso() {
+        indice = indice + 1;
+
+        if (indice >= PasosTotal-1) {
+            clearInterval(intervalo);
+            document.getElementById('btnVerFinal').style.display = 'none';
+            document.getElementById('btnReiniciar').style.display = 'inline-block';
+            tiempoElemento.style.display = 'block';
+            mostrarTableroFinal();
+            return;
+        }
+
+        var pasoActual = pasos[indice];
+        aplicarPaso(pasoActual, posAnterior);
+
+        posAnterior = {
+            fila: pasoActual[0],
+            columna: pasoActual[1]
+        };
+
+        contador.textContent = 'Paso ' + (indice + 1) + ' de ' + PasosTotal;
+    }
+
+    /*
+     * iniciar()
+     *
+     * Entradas:
+     *   - ninguna (usa variables globales inicializadas arriba)
+     * Salidas:
+     *   - arranca la animación del recorrido (configurando intervalo que llama a mostrarSiguientePaso)
+     *
+     * Restricciones / Efectos:
+     *   - muestra/oculta botones en la UI
+     *   - asume que 'pasos' tiene al menos un elemento
+     */
+    function iniciar() {
+        if (PasosTotal === 0) {
+            return;
+        }
+
+        document.getElementById('btnIniciar').style.display = 'none';
+        document.getElementById('btnVerFinal').style.display = 'inline-block';
+        document.getElementById('contenedor').style.display = 'block';
+
+        crearTablero();
+
+        var primerPaso = pasos[0];
+        numeroPaso = 0;
+        aplicarPaso(primerPaso, null);
+
+        posAnterior = {
+            fila: primerPaso[0],
+            columna: primerPaso[1]
+        };
+        
+        contador.textContent = 'Paso 1 de ' + PasosTotal;
+
+        intervalo = setInterval(mostrarSiguientePaso, VELOCIDAD);
+    }
+    </script>
+</body>
+</html>

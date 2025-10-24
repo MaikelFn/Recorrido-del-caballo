@@ -1,0 +1,15 @@
+{% macro Tablero(Tamaño, Fila, Columna) %}
+<div class="matriz">
+  {% for i in range(Tamaño) %}
+    <div class="fila">
+      {% for j in range(Tamaño) %}
+        {% if i == Fila and j == Columna %}
+          <div class="celda caballo"></div>
+        {% else %}
+          <div class="celda"></div>
+        {% endif %}
+      {% endfor %}
+    </div>
+  {% endfor %}
+</div>
+{% endmacro %}

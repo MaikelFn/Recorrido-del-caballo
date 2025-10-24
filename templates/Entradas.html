@@ -1,0 +1,78 @@
+{% import 'macros.jinja2' as macros %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Recorrido del Caballo</title>
+    <!-- Hoja de estilos principal -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Título principal de la página -->
+    <h1>Recorrido del Caballo</h1>
+    
+    <div class="formulario">
+        <!-- Formulario principal para seleccionar parámetros del recorrido -->
+        <form method="POST" action="{{ url_for('tablero') }}">
+            <div class="Entrada">
+                <!-- Menú desplegable para seleccionar el tamaño del tablero -->
+                <label>Tamaño del tablero:</label>
+                <select id="tamaño" name="tamaño" required>
+                    {% for n in range(4, 8) %}
+                        <option 
+                            value="{{ n }}"
+                            {% if n == 7 %}
+                                selected
+                            {% endif %}>
+                            {{ n }} x {{ n }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="Entrada">
+                <!-- Menú desplegable para seleccionar la fila inicial del caballo -->
+                <label>Fila del caballo:</label>
+                <select id="fila" name="fila" required>
+                    {% for n in range(0, 7) %}
+                        <option value="{{ n }}">{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="Entrada">
+                <!-- Menú desplegable para seleccionar la columna inicial del caballo -->
+                <label>Columna del caballo:</label>
+                <select id="columna" name="columna" required>
+                    {% for n in range(0, 7) %}
+                        <option value="{{ n }}">{{ n }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <!-- Botón para enviar el formulario y generar la vista previa del tablero -->
+            <button type="submit">Generar</button>
+        </form>
+    </div>
+
+    <script>
+    /*
+     * Script para actualizar las opciones de fila y columna
+     * según el tamaño seleccionado en el menú desplegable.
+     * Así, si el usuario cambia el tamaño del tablero,
+     * los menús de fila y columna se ajustan automáticamente.
+     */
+    document.getElementById('tamaño').addEventListener('change', function() {
+        const tamaño = parseInt(this.value, 10);
+        const filaSelect = document.getElementById('fila');
+        const columnaSelect = document.getElementById('columna');
+        filaSelect.innerHTML = '';
+        columnaSelect.innerHTML = '';
+        for (let i = 0; i < tamaño; i++) {
+            filaSelect.innerHTML += `<option value="${i}">${i}</option>`;
+            columnaSelect.innerHTML += `<option value="${i}">${i}</option>`;
+        }
+    });
+    </script>
+</body>
+</html>

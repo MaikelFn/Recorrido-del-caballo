@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Recorrido del Caballo</title>
+    <!-- Hoja de estilos principal -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Título de la página de error -->
+    <h1>⚠️ Error</h1>
+    <div class="mensaje-sin-solucion">
+        <!-- Icono de error -->
+        <div class="icono-error">❌</div>
+        <h2>Error en la operación</h2>
+        <!-- Mensaje de error personalizado -->
+        <p><strong>{{ mensaje }}</strong></p>
+        {% if tamaño %}
+            <!-- Información adicional sobre el tamaño del tablero -->
+            <p>Tablero: {{ tamaño }}x{{ tamaño }}</p>
+        {% endif %}
+        <div class="botones-sin-solucion">
+            <!-- Botón para volver al inicio -->
+            <button onclick="window.location.href='/inicio'">Inicio</button>
+        </div>
+    </div>
+</body>
+</html>

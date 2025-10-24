@@ -1,0 +1,26 @@
+{% import 'macros.jinja2' as macros %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tablero</title>
+    <!-- Hoja de estilos principal -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <!-- Título de la página de vista previa del tablero -->
+    <h1>Tablero</h1>
+    <div class="formulario">
+        <!-- Formulario para seleccionar el tipo de recorrido -->
+        <form method="POST" action="{{ url_for('generar') }}">
+            <!-- Macro para mostrar el tablero con la posición inicial del caballo -->
+            {{ macros.Tablero(tamaño, fila, columna) }}
+            <!-- Botón para solicitar un recorrido abierto -->
+            <button type="submit" name="Recorrido" value="abierto">Recorrido Abierto</button>
+            <!-- Botón para solicitar un recorrido cerrado -->
+            <button type="submit" name="Recorrido" value="cerrado">Recorrido Cerrado</button>
+        </form>
+        <button onclick="window.location.href='/inicio'" type="submit">Inicio</button>
+    </div>
+</body>
+</html>
